@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>听力自我诊断 Agent | Hearing Self-Diagnosis</title>
+    <meta name="description" content="基于 Web Audio API 的纯音测听自我诊断工具">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👂</text></svg>">
+</head>
+<body>
+
+<!-- ============================================
+     欢迎页
+     ============================================ -->
+<div class="screen active" id="screen-welcome">
+    <div class="container">
+        <div id="welcome-hero">
+            <span class="hero-icon">👂</span>
+            <h1>听力自我诊断 Agent</h1>
+            <p>基于临床纯音测听协议，使用 Web Audio API 在浏览器中完成听力筛查，生成专业听力图与诊断报告。</p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="icon">🔊</div>
+                <h3>纯音测听</h3>
+                <p>250-8000 Hz 六个标准频率，左右耳分别测试，采用 Hughson-Westlake 阈值测定法。</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📊</div>
+                <h3>听力图生成</h3>
+                <p>自动绘制标准听力图，红色○代表右耳，蓝色×代表左耳，直观展示各频率听阈。</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🩺</div>
+                <h3>智能诊断</h3>
+                <p>自动分析听力损失程度、类型和听力图形态，生成个性化建议。</p>
+            </div>
+        </div>
+
+        <div style="text-align:center; margin-bottom: 40px;">
+            <button class="btn btn-primary btn-lg" id="btn-start">
+                开始听力测试 →
+            </button>
+        </div>
+
+        <div class="result-section" style="background: #fffde7; border-left-color: #fbc02d;">
+            <h3 style="color: #f57f17;">📌 测试前须知</h3>
+            <p style="font-size: 14px; color: #5d4037;">
+                本工具使用 Web Audio API 生成纯音，测试结果<strong>受耳机类型、设备音量和环境噪声影响</strong>，仅供初步筛查参考，
+                <strong>不能替代专业医疗诊断</strong>。如有听力问题，请及时就医。
+            </p>
+            <p style="font-size: 14px; color: #5d4037; margin-top: 8px;">
+                建议使用<strong>有线耳机</strong>在<strong>安静环境</strong>中测试，将设备音量调至 60%-80%。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================
+     准备页
+     ============================================ -->
+<div class="screen" id="screen-prep">
+    <div class="container">
+        <div class="prep-card">
+            <h2>🛠 测试准备</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">请逐项确认以下准备事项，确保测试结果尽可能准确。</p>
+
+            <ul class="checklist">
+                <li>
+                    <span class="check-icon">1</span>
+                    <div>
+                        <strong>佩戴耳机</strong>
+                        <div class="detail">使用有线耳机效果最佳。蓝牙耳机可能有延迟，不建议使用。确保耳机左右正确佩戴（左耳标 L，右耳标 R）。</div>
+                    </div>
+                </li>
+                <li>
+                    <span class="check-icon">2</span>
+                    <div>
+                        <strong>选择安静环境</strong>
+                        <div class="detail">在安静的房间中测试，关闭音乐、电视等声源。环境噪声会严重影响低频测试结果。</div>
+                    </div>
+                </li>
+                <li>
+                    <span class="check-icon">3</span>
+                    <div>
+                        <strong>设置设备音量</strong>
+                        <div class="detail">将电脑/手机系统音量调至 60%-80%（约中等偏上）。测试过程中请勿调整系统音量。</div>
+                    </div>
+                </li>
+                <li>
+                    <span class="check-icon">4</span>
+                    <div>
+                        <strong>了解测试流程</strong>
+                        <div class="detail">系统会播放不同频率和音量的纯音。听到声音时点击「我听到了」，听不到时点击「没听到」。系统会自动调整音量寻找您的听阈。</div>
+                    </div>
+                </li>
+                <li>
+                    <span class="check-icon">5</span>
+                    <div>
+                        <strong>测试时间</strong>
+                        <div class="detail">完整测试约需 8-15 分钟。请保持耐心，不要随意猜测。每听到声音再点击，不确定就选「没听到」。</div>
+                    </div>
+                </li>
+            </ul>
+
+            <div style="display: flex; gap: 16px; justify-content: center;">
+                <button class="btn btn-secondary" id="btn-back-welcome">← 返回</button>
+                <button class="btn btn-primary btn-lg" id="btn-begin-calibration">音量校准 →</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================
+     校准页
+     ============================================ -->
+<div class="screen" id="screen-calibration">
+    <div class="container">
+        <div class="prep-card">
+            <h2>🔊 音量校准</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                在开始测试前，请先确认您能听到测试音。点击下方按钮播放校准音，如果听不到请调高设备音量。
+            </p>
+
+            <div class="calibration-area">
+                <div class="calibration-icon" id="calib-icon">🔇</div>
+                <div class="calibration-status" id="calib-status">点击下方按钮播放校准音</div>
+                <button class="btn btn-primary btn-lg" id="btn-play-calibration">
+                    ▶ 播放校准音 (1000 Hz)
+                </button>
+            </div>
+
+            <div class="calibration-tips">
+                <strong>📋 校准说明</strong>
+                <ul>
+                    <li>校准音为 1000 Hz 纯音，约中等音量，双耳播放</li>
+                    <li>如果<strong>听不到</strong>声音：请调高电脑/手机系统音量，然后重新播放</li>
+                    <li>如果声音<strong>太小</strong>：建议调高音量到能清晰听到的程度</li>
+                    <li>如果声音<strong>太大</strong>：可适当降低系统音量</li>
+                    <li>确认能清晰听到后，点击「开始正式测试」</li>
+                </ul>
+            </div>
+
+            <div style="display: flex; gap: 16px; justify-content: center; margin-top: 24px;">
+                <button class="btn btn-secondary" id="btn-back-prep">← 返回</button>
+                <button class="btn btn-success btn-lg" id="btn-start-actual-test">✓ 能听到，开始测试</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================
+     测试页
+     ============================================ -->
+<div class="screen" id="screen-testing">
+    <div class="container">
+
+        <!-- 测试头部 -->
+        <div class="test-header">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%;"></div>
+                </div>
+                <div class="progress-info">
+                    <span id="step-indicator">步骤 1 / 12</span>
+                    <span id="progress-text">0%</span>
+                </div>
+            </div>
+            <div class="freq-indicator" id="freq-indicator"></div>
+        </div>
+
+        <!-- 测试主体 -->
+        <div class="test-main">
+            <div class="test-display">
+                <div class="ear-badge right" id="current-ear">右耳</div>
+                <div class="current-freq" id="current-freq">1 kHz</div>
+                <div class="test-status" id="test-status">准备中...</div>
+            </div>
+
+            <div class="test-message" id="test-message"></div>
+
+            <div class="response-buttons">
+                <button class="btn btn-success" id="btn-heard" disabled>
+                    ✓ 我听到了
+                </button>
+                <button class="btn btn-danger" id="btn-not-heard" disabled>
+                    ✗ 没听到
+                </button>
+            </div>
+
+            <div class="aux-buttons">
+                <button class="btn-aux" id="btn-replay">↻ 重新播放</button>
+                <button class="btn-aux" id="btn-abort">✕ 中止测试</button>
+            </div>
+
+            <div class="test-tips">
+                <strong>💡 测试提示</strong>
+                • 每次播放约 1.5 秒纯音，请仔细聆听<br>
+                • 听到声音 → 点击「我听到了」（或按空格键）<br>
+                • 没听到声音 → 点击「没听到」（或按 ↓ 键）<br>
+                • 不确定时，请选「没听到」<br>
+                • 按 R 键可重新播放当前音
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 耳朵切换遮罩 -->
+<div class="overlay" id="ear-switch-overlay">
+    <div class="overlay-content">
+        <p id="ear-switch-text"></p>
+        <button class="btn btn-primary btn-lg" id="btn-continue-switch">继续测试 →</button>
+    </div>
+</div>
+
+<!-- ============================================
+     结果页
+     ============================================ -->
+<div class="screen" id="screen-results">
+    <div class="container-wide">
+        <div class="results-header">
+            <h2>📋 听力诊断报告</h2>
+            <p>以下是您的纯音测听结果和智能分析报告</p>
+        </div>
+
+        <!-- 听力图 -->
+        <div class="result-section">
+            <h3>📊 听力图</h3>
+            <div class="audiogram-wrapper">
+                <div id="audiogram-container"></div>
+            </div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 12px; text-align: center;">
+                纵轴为听力级（dB HL），0 dB 在顶部，数值越大表示听力损失越重。<br>
+                绿色区域为正常听力范围（0-25 dB HL）。
+            </p>
+        </div>
+
+        <!-- 诊断报告 -->
+        <div class="result-section">
+            <h3>🩺 诊断分析</h3>
+            <div id="diagnosis-report"></div>
+        </div>
+
+        <!-- 频率详情表 -->
+        <div class="result-section">
+            <h3>📋 各频率详细数据</h3>
+            <div id="frequency-table"></div>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 12px;">
+                PTA（Pure Tone Average）= 500/1000/2000 Hz 平均听阈，反映言语频率区的听力水平。
+            </p>
+        </div>
+
+        <!-- 测试历史 -->
+        <div class="result-section">
+            <h3>📝 测试响应记录</h3>
+            <div id="test-history"></div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="result-actions">
+            <button class="btn btn-secondary" id="btn-print">🖨 打印报告</button>
+            <button class="btn btn-primary" id="btn-restart">🔄 重新测试</button>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript 模块 -->
+<script src="js/audio-engine.js"></script>
+<script src="js/test-protocol.js"></script>
+<script src="js/audiogram.js"></script>
+<script src="js/diagnosis.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
